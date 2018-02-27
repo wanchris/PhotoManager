@@ -1,0 +1,269 @@
+package photo_renamer;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Image;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+import javax.swing.BorderFactory;
+
+public class PhotoRenamer{
+	static String obIM;
+	final static String FILENAME = "tagsList.txt";
+	private final JFrame jFrame;
+	private final JButton exitButton;
+	private final JButton pickDir;
+	private final JButton selectIm;
+	private final JButton addRemove;
+	private final JButton dirHistory;
+	private final JButton revert;
+	private final JPanel buttonPanel;
+	private final JPanel eastPanel;
+	private final JPanel westPanel;
+	private final JList<Object> text;
+	private final JList<Object> listTags;
+	private final JScrollPane scroll;
+	private final JScrollPane tagScroll;
+	private final JTextField tf;
+
+
+	PhotoRenamer() throws ClassNotFoundException, IOException{
+		this.jFrame = new JFrame("Photo Renamer");
+
+		Dimension dJF = new Dimension(600, 500); //JFrame dimension
+		Dimension dSP = new Dimension(100,390); //dir scroll dimension/
+		Dimension dWP = new Dimension (110, 500); //west panel
+		Dimension dB = new Dimension(100,25); //button dimension
+		Dimension dEP = new Dimension(110,500); //east pane dimension
+		Dimension r = new Dimension(380, 420); //Image dimension
+		Dimension t = new Dimension (100, 20); //Text dimension
+		JLabel image = new JLabel();
+
+		imageManager iM = imageManager.getInstance();
+		ImageDirectory iD = ImageDirectory.getInstance(); 
+
+		String currentDirectory = System.getProperty("user.dir");
+		String path = currentDirectory + "\\" + FILENAME;
+
+		buttonPanel = new JPanel();
+		eastPanel = new JPanel();
+		westPanel = new JPanel();
+		exitButton = new JButton("Exit");
+		pickDir = new JButton("Select Folder");
+		selectIm = new JButton("Select Image");
+		addRemove = new JButton ("Add/Remove Tag");
+		dirHistory = new JButton ("Names");
+		revert = new JButton("revert");
+		text = new JList<Object>();
+		listTags = new JList<Object>();
+		scroll = new JScrollPane(text);
+		tagScroll = new JScrollPane(listTags);
+		tf = new JTextField();
+
+		buttonPanel.add(exitButton);
+		buttonPanel.add(pickDir);
+		buttonPanel.add(selectIm);
+		buttonPanel.add(addRemove);
+		buttonPanel.add(revert);
+		jFrame.add(buttonPanel, BorderLayout.SOUTH);
+		eastPanel.add(tagScroll, BorderLayout.CENTER);
+		westPanel.add(scroll, BorderLayout.CENTER);
+		westPanel.add(dirHistory, BorderLayout.SOUTH);
+		jFrame.add(image,BorderLayout.CENTER);
+		eastPanel.add(tf, BorderLayout.SOUTH);
+		jFrame.add(eastPanel,BorderLayout.EAST);
+		jFrame.add(westPanel, BorderLayout.WEST);
+
+		text.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+		text.setLayoutOrientation(JList.VERTICAL);
+		listTags.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+		listTags.setLayoutOrientation(JList.VERTICAL);
+		setTagsList(path);
+		jFrame.setPreferredSize(dJF);
+		//this.jFrame.setSize(600, 500);
+		scroll.setPreferredSize(dSP);
+		tagScroll.setPreferredSize(dSP);
+		//jk.add(scroll, BorderLayout.WEST);
+		//jk.add(tagScroll, BorderLayout.EAST);
+		eastPanel.setPreferredSize(dEP);
+		westPanel.setPreferredSize(dWP);
+		dirHistory.setPreferredSize(dB);
+		tf.setPreferredSize(t);
+		eastPanel.setBorder(BorderFactory.createEmptyBorder(0, -10, 0,0));
+		westPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 0,0));
+
+		exitButton.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				System.exit(0);
+			}			
+		});
+
+		pickDir.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				JFileChooser fileChooser = new JFileChooser();
+				String textOut = "";
+				fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				int returnVal = fileChooser.showOpenDialog(null);
+
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					File file = fileChooser.getSelectedFile();
+					List<String> imageFiles = iD.listImages(file);
+
+					text.setListData(imageFiles.toArray());
+				}
+			}
+		});
+
+		selectIm.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				String key;
+				String dir;
+				key = (String) text.getSelectedValue();
+				dir = iD.location.get(key);
+				BufferedImage img = null;
+				Image rimg;
+				ImageIcon icon;
+				try {
+					img = ImageIO.read(new File(dir));
+				} catch (IOException e) {
+					System.out.println("?");
+				} catch (NullPointerException e){
+					System.out.println(dir);
+				}
+				image.setPreferredSize(r);
+
+				rimg = img.getScaledInstance(r.width, r.height, img.SCALE_SMOOTH);
+
+
+				icon = new ImageIcon(rimg);
+				image.setIcon(icon);
+			}
+		});
+
+		addRemove.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				String key = (String) text.getSelectedValue();
+				String dir = ImageDirectory.location.get(key);
+				ArrayList<Tag> tags = new ArrayList<Tag>();
+				ArrayList<Tag> tagsRemove = new ArrayList<Tag>();
+
+				try {
+					if (!tf.getText().isEmpty() && !iM.getTagHistory(dir).contains(tf.getText())){
+						Tag tag = new Tag(tf.getText());
+						tags.add(tag);
+					}
+					else if (!tf.getText().isEmpty())
+						tagsRemove.add(new Tag(tf.getText()));
+					if (!listTags.isSelectionEmpty() && !tf.getText().equals((String) listTags.getSelectedValue())&&!iM.getTagHistory(dir).contains((String)listTags.getSelectedValue())){
+						Tag tag2 = new Tag((String)listTags.getSelectedValue());
+						tags.add(tag2);
+					}
+					else if (!listTags.isSelectionEmpty())
+						tagsRemove.add(new Tag((String) listTags.getSelectedValue()));
+
+					if (!tags.isEmpty()){
+						iM.rename(tags, dir);
+
+						//System.out.println(iM.getNameHistory(dir));			
+					}
+					else{
+						iM.remove(tagsRemove, dir);
+					}
+					File file = new File(dir);
+					List<String> imageFiles = iD.getListImages(file.getParentFile());
+					text.setListData(imageFiles.toArray());
+					setTagsList(path);
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+
+		dirHistory.addActionListener(new ActionListener(){
+
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				String key = (String) text.getSelectedValue();
+				String dir = iD.location.get(key);
+				if (dirHistory.getText().equals("Names")){
+					obIM = dir;
+					text.setListData(iM.getNameHistory(dir).toArray());
+					dirHistory.setText("Images");
+
+				}
+				else{
+					List<String> imageFiles = iD.listImages((new File(obIM)).getParentFile());
+					text.setListData(imageFiles.toArray());
+					dirHistory.setText("Names");
+				}
+
+			}
+
+		});
+
+		revert.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				String key = (String) text.getSelectedValue();
+				File x = new File(obIM).getParentFile();
+				String dir = x.getAbsolutePath() + "\\" + key;
+
+
+				try {
+					iM.revert(key, obIM);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+
+				File file = new File(dir);
+				List<String> imageFiles = iD.getListImages(file.getParentFile());
+				text.setListData(imageFiles.toArray());
+				dirHistory.setText("Names");
+			}
+		});
+	}
+
+
+	public void setTagsList (String path) throws ClassNotFoundException, IOException{
+		Tag.loadTags(path);
+		if (!Tag.getTags().isEmpty())
+			listTags.setListData(Tag.getTags().toArray());		
+	}
+
+	public void show(){
+		jFrame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+		jFrame.pack();
+		jFrame.setVisible(true);
+	}
+
+	public static void main(String[] args) throws ClassNotFoundException, IOException{
+		PhotoRenamer pR = new PhotoRenamer();
+		pR.show();
+	}
+}

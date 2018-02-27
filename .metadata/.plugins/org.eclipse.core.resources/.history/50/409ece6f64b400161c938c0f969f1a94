@@ -1,0 +1,96 @@
+package photo_renamer;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+
+
+class TagList implements Iterator<Tag> {
+	/** This AddressBook's list of contacts. */
+    private List<Tag> tags;
+
+    /**
+     * Constructs a new AddressBook.
+     */
+    public TagList() {
+        tags = new ArrayList<>();
+    }
+
+    /**
+     * Adds a new contact with last name lastName, first name firstName, email
+     * address email, phone number phone, and address address.
+     * @param lastName the last name
+     * @param firstName the first name
+     * @param email the email address
+     * @param phone the phone number
+     * @param address the address
+     */
+    public void addContact(String name) throws ClassNotFoundException, IOException {
+        Tag newTag = new Tag(name);
+        tags.add(newTag);
+    } 
+
+
+    /**
+     * Returns an iterator for this address book.
+     * @return an iterator for this address book.
+     */
+    public Iterator<Tag> iterator() {
+        return new TagListIterator();
+    }
+
+    /**
+     * An Iterator for AddressBook Contacts.
+     */
+    private class TagListIterator implements Iterator<Tag> {
+
+        /** The index of the next tag to return. */
+        private int current = 0;
+
+        /**
+         * Returns whether there is another Contact to return.
+         * @return whether there is another Contact to return.
+         */
+        @Override
+        public boolean hasNext() {
+            return current < tags.size();
+        }
+
+        /**
+         * Returns the next Contact.
+         * @return the next Contact.
+         */
+        @Override
+        public Tag next() {
+            Tag res;
+            try {
+                res = tags.get(current);
+            } catch (IndexOutOfBoundsException e) {
+                throw new NoSuchElementException();
+            }
+            current += 1;
+            return res;
+        }
+
+        /**
+         * Removes the tag just returned.  Unsupported.
+         */
+        @Override
+        public void remove() {
+            throw new UnsupportedOperationException("Not supported.");
+        }
+    }
+
+	@Override
+	public boolean hasNext() {
+		throw new UnsupportedOperationException("Not supported.");
+	}
+
+	@Override
+	public Tag next() {
+		throw new UnsupportedOperationException("Not supported.");
+	}
+
+}

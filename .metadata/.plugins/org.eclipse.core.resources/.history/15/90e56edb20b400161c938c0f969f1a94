@@ -1,0 +1,217 @@
+package photo_renamer;
+
+import java.awt.BorderLayout;
+import java.awt.Dimension;
+import java.awt.Image;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.imageio.ImageIO;
+import javax.swing.*;
+
+public class PhotoRenamer implements WindowListener{
+	public static void main(String[] args) {
+		// TODO Auto-generated method stub
+		PhotoRenamer p = new PhotoRenamer();
+		Dimension dJF = new Dimension(500, 500); //JFrame dimension
+		Dimension dSP = new Dimension(100,100); //dir scroll dimension/
+		Dimension dTS = new Dimension(100,390); //tag scroll dimension
+		Dimension dEP = new Dimension(100,500); //east pane dimension
+		Dimension r = new Dimension(300, 500); //Image dimension
+		Dimension t = new Dimension (100, 20); //Text dimension
+		JLabel image = new JLabel();
+
+		final String FILENAME = "tagsList.txt";
+		String currentDirectory = System.getProperty("user.dir");
+		String path = currentDirectory + "\\" + FILENAME;
+
+		JFrame jk = new JFrame("PhotoRenamer");
+		JButton exitButton = new JButton("Exit");
+		JButton pickDir = new JButton("Select Folder");
+		JButton selectIm = new JButton("Select Image");
+		JButton addRemove = new JButton ("Add/Remove Tag");
+		jk.setPreferredSize(dJF);
+
+		JPanel buttonPanel = new JPanel();
+		buttonPanel.add(exitButton);
+		buttonPanel.add(pickDir);
+		buttonPanel.add(selectIm);
+		buttonPanel.add(addRemove);
+		jk.add(buttonPanel, BorderLayout.SOUTH);
+
+		JList text = new JList();
+		JList listTags = new JList();
+		text.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+		text.setLayoutOrientation(JList.VERTICAL);
+
+		listTags.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+		listTags.setLayoutOrientation(JList.VERTICAL);
+		p.setTagsList(path, listTags);
+
+		JScrollPane scroll = new JScrollPane(text);
+		JScrollPane tagScroll = new JScrollPane(listTags);
+		scroll.setPreferredSize(dSP);
+		tagScroll.setPreferredSize(dTS);
+		jk.add(scroll, BorderLayout.WEST);
+		//jk.add(tagScroll, BorderLayout.EAST);
+		JPanel eastPanel = new JPanel();
+		eastPanel.setPreferredSize(dEP);
+		eastPanel.add(tagScroll, BorderLayout.CENTER);
+
+		jk.add(image,BorderLayout.CENTER);
+
+		JTextField tf = new JTextField();
+		tf.setPreferredSize(t);
+		eastPanel.add(tf, BorderLayout.SOUTH);
+		jk.add(eastPanel,BorderLayout.EAST);
+
+
+
+
+		jk.pack();
+		jk.setVisible(true);
+
+		jk.addWindowListener((WindowListener) p);
+
+		exitButton.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				System.exit(0);
+			}			
+		});
+
+		pickDir.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				JFileChooser fileChooser = new JFileChooser();
+				String textOut = "";
+				fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+				int returnVal = fileChooser.showOpenDialog(null);
+
+				if (returnVal == JFileChooser.APPROVE_OPTION) {
+					File file = fileChooser.getSelectedFile();
+					List<String> imageFiles = ImageDirectory.listImages(file);
+
+					text.setListData(imageFiles.toArray());
+				}
+			}
+		});
+
+		selectIm.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				String key;
+				String dir;
+				key = (String) text.getSelectedValue();
+				dir = ImageDirectory.location.get(key);
+				BufferedImage img = null;
+				Image rimg;
+				ImageIcon icon;
+				try {
+					img = ImageIO.read(new File(dir));
+				} catch (IOException e) {
+					System.out.println("?");
+				} catch (NullPointerException e){
+					System.out.println(dir);
+				}
+				image.setPreferredSize(r);
+
+				rimg = img.getScaledInstance(r.width, r.height, img.SCALE_SMOOTH);
+
+
+				icon = new ImageIcon(rimg);
+				image.setIcon(icon);
+			}
+		});
+
+		addRemove.addActionListener(new ActionListener(){
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				// TODO Auto-generated method stub
+				String key = (String) text.getSelectedValue();
+				String dir = ImageDirectory.location.get(key);
+				ArrayList<Tag> tags = new ArrayList<Tag>();
+
+
+				try {
+					Tag tag = new Tag(tf.getText());
+					tags.add(tag);
+					imageManager iM = new imageManager();
+					if (!iM.getNameHistory(dir).contains(tf.getText())){
+						iM.rename(tags, dir);
+
+						//System.out.println(iM.getNameHistory(dir));			
+					}
+					else{
+						iM.remove(tags, dir);
+					}
+					File file = new File(dir);
+					List<String> imageFiles = ImageDirectory.getListImages(file.getParentFile());
+					text.setListData(imageFiles.toArray());
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	public void setTagsList (String path, JList tf){
+		if (!Tag.getTags().isEmpty())
+			tf.setListData(Tag.getTags().toArray());		
+	}
+
+
+	@Override
+	public void windowActivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void windowClosed(WindowEvent e) {
+		// TODO Auto-generated method stub
+		System.exit(0);
+	}
+
+	@Override
+	public void windowClosing(WindowEvent e) {
+		// TODO Auto-generated method stub
+		System.exit(0);
+	}
+
+	@Override
+	public void windowDeactivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void windowDeiconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void windowIconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+	}
+
+	@Override
+	public void windowOpened(WindowEvent e) {
+		// TODO Auto-generated method stub
+	}
+
+}
